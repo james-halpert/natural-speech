@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, IntVar
 import csv
 import nltk
 
@@ -8,21 +8,34 @@ class DictionaryGenerator:
         self.master = master
         master.title("Dictionary Generator")
 
-        self.label = tk.Label(master, text="Select the number of words:")
-        self.label.pack()
+        self.label_num_words = tk.Label(master, text="Select the number of words:")
+        self.label_num_words.pack()
 
-        self.entry = tk.Entry(master)
-        self.entry.pack()
+        self.entry_num_words = tk.Entry(master)
+        self.entry_num_words.pack()
+
+        self.label_file_name = tk.Label(master, text="Enter the file name (without extension):")
+        self.label_file_name.pack()
+
+        self.entry_file_name = tk.Entry(master)
+        self.entry_file_name.pack()
+
+        self.use_adjectives_var = IntVar()
+        self.checkbox_adjectives = tk.Checkbutton(master, text="Generate only adjectives", variable=self.use_adjectives_var)
+        self.checkbox_adjectives.pack()
 
         self.generate_button = tk.Button(master, text="Generate Dictionary", command=self.generate_dictionary)
         self.generate_button.pack()
 
     def generate_dictionary(self):
         try:
-            num_words = int(self.entry.get())
+            num_words = int(self.entry_num_words.get())
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid number.")
             return
+
+        file_name = self.entry_file_name.get()
+        use_adjectives = self.use_adjectives_var.get()
 
         nltk.download('stopwords')
         nltk.download('corpora')
@@ -37,14 +50,19 @@ class DictionaryGenerator:
 
         common_words = prepositions_and_articles + common_words
 
-        with open("dictionary.csv", mode="w", newline="", encoding="utf-8") as file:
+        if use_adjectives:
+            adjectives = set(word.lower() for word, tag in nltk.pos_tag(nltk.corpus.words.words()) if tag == 'JJ')
+            common_words = list(filter(lambda word: word in adjectives, common_words))
+
+        file_path = f"{file_name}.csv"
+
+        with open(file_path, mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
-            writer.writerow(["Common Words"])
 
             for word in common_words[:num_words]:
                 writer.writerow([word])
 
-        messagebox.showinfo("Success", f"Dictionary with {num_words} most common words generated as 'dictionary.csv'.")
+        messagebox.showinfo("Success", f"Dictionary with {num_words} {'adjectives' if use_adjectives else 'words'} generated as '{file_path}'.")
 
 if __name__ == "__main__":
     root = tk.Tk()
